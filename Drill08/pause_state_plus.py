@@ -35,8 +35,7 @@ def handle_events():
 def draw():
     global pause
     clear_canvas()
-    #main_state.draw()
-
+    main_state.draw()
     image.draw(400, 300, 400, 400)
     delay(0.01)
     update_canvas()
