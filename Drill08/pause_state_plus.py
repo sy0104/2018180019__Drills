@@ -27,7 +27,7 @@ def handle_events():
         else:
             if (event.type, event.key) == (SDL_KEYDOWN, SDLK_p):
                 game_framework.pop_state()
-                pause = True
+
 
     pass
 
@@ -35,11 +35,9 @@ def handle_events():
 def draw():
     global pause
     clear_canvas()
-    image.draw(400, 300, 400, 400)
-    main_state.draw()
-    if pause == False:
-        image.draw(400, 300, 400, 400)
+    #main_state.draw()
 
+    image.draw(400, 300, 400, 400)
     delay(0.01)
     update_canvas()
 
