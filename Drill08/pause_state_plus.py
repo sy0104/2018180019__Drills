@@ -36,7 +36,7 @@ def draw():
     global pause
     clear_canvas()
     main_state.draw()
-    image.draw(400, 300, 400, 400)
+    image.draw(400, 300, 200, 200)
     delay(0.01)
     update_canvas()
 
