@@ -39,8 +39,7 @@ def draw():
     main_state.draw()
     if pause == False:
         image.draw(400, 300, 400, 400)
-    else:
-        pause = True
+
     delay(0.01)
     update_canvas()
 
