@@ -11,11 +11,12 @@ class Grass:
 
 
 class Boy:
-
+    image = None
     def __init__(self):
         self.x, self.y = random.randint(100, 700), 90
         self.frame = random.randint(0, 7)
-        self.image = load_image('run_animation.png')
+        if Boy.image == None:
+            Boy.image = load_image('run_animation.png')
 
 
     def update(self):
@@ -34,7 +35,6 @@ def handle_events():
             running = False
         elif event.type == SDL_KEYDOWN and event.key == SDLK_ESCAPE:
             running = False
-
 
 open_canvas()
 
