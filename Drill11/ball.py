@@ -3,7 +3,7 @@ from pico2d import *
 import game_world
 import game_framework
 
-
+### 충돌 부분은 main_state에 구현
 
 class Ball:
     image = None
