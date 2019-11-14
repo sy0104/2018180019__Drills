@@ -44,12 +44,12 @@ class IdleState:
             boy.velocity -= RUN_SPEED_PPS
         elif event == LEFT_UP:
             boy.velocity += RUN_SPEED_PPS
+        elif event == SPACE and not boy.jumping:
+            boy.jumping = True
         boy.timer = 1000
 
     @staticmethod
     def exit(boy, event):
-        if event == SPACE:
-            boy.fire_ball()
         pass
 
     @staticmethod
@@ -58,6 +58,18 @@ class IdleState:
         boy.timer -= 1
         if boy.timer == 0:
             boy.add_event(SLEEP_TIMER)
+
+        if boy.jumping:
+            boy.y += RUN_SPEED_PPS * game_framework.frame_time * 3
+            if boy.y >= 400:
+                boy.jumping = False
+                boy.falling = True
+        elif boy.falling:
+            boy.y -= RUN_SPEED_PPS * game_framework.frame_time * 3
+            if boy.y <= 90:
+                boy.y = 90
+                boy.falling = False
+
 
     @staticmethod
     def draw(boy):
@@ -79,12 +91,13 @@ class RunState:
             boy.velocity -= RUN_SPEED_PPS
         elif event == LEFT_UP:
             boy.velocity += RUN_SPEED_PPS
+        elif event == SPACE and not boy.jumping:
+            boy.jumping = True
         boy.dir = clamp(-1, boy.velocity, 1)
 
     @staticmethod
     def exit(boy, event):
-        if event == SPACE:
-            boy.fire_ball()
+        pass
 
     @staticmethod
     def do(boy):
@@ -92,6 +105,17 @@ class RunState:
         boy.frame = (boy.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 8
         boy.x += boy.velocity * game_framework.frame_time
         boy.x = clamp(25, boy.x, 1600 - 25)
+
+        if boy.jumping:
+            boy.y += RUN_SPEED_PPS * game_framework.frame_time * 3
+            if boy.y >= 400:
+                boy.jumping = False
+                boy.falling = True
+        elif boy.falling:
+            boy.y -= RUN_SPEED_PPS * game_framework.frame_time * 3
+            if boy.y <= 90:
+                boy.y = 90
+                boy.falling = False
 
     @staticmethod
     def draw(boy):
@@ -102,7 +126,6 @@ class RunState:
 
 
 class SleepState:
-
     @staticmethod
     def enter(boy, event):
         boy.frame = 0
@@ -114,6 +137,17 @@ class SleepState:
     @staticmethod
     def do(boy):
         boy.frame = (boy.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % 8
+
+        if boy.jumping:
+            boy.y += RUN_SPEED_PPS * game_framework.frame_time * 3
+            if boy.y >= 400:
+                boy.jumping = False
+                boy.falling = True
+        elif boy.falling:
+            boy.y -= RUN_SPEED_PPS * game_framework.frame_time * 3
+            if boy.y <= 90:
+                boy.y = 90
+                boy.falling = False
 
     @staticmethod
     def draw(boy):
@@ -143,13 +177,15 @@ class Boy:
         self.dir = 1
         self.velocity = 0
         self.frame = 0
+        self.jumping = False
+        self.falling = False
         self.event_que = []
         self.cur_state = IdleState
         self.cur_state.enter(self, None)
 
     def get_bb(self):
         # fill here
-        return 0, 0, 0, 0
+        return self.x - 50, self.y - 50, self.x + 50, self.y + 50
 
 
     def fire_ball(self):
@@ -168,10 +204,14 @@ class Boy:
             self.cur_state = next_state_table[self.cur_state][event]
             self.cur_state.enter(self, event)
 
+
+
     def draw(self):
         self.cur_state.draw(self)
         self.font.draw(self.x - 60, self.y + 50, '(Time: %3.2f)' % get_time(), (255, 255, 0))
         #fill here
+        draw_rectangle(*self.get_bb())
+
 
 
     def handle_event(self, event):
