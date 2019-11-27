@@ -3,7 +3,7 @@ import math
 import game_framework
 from BehaviorTree import BehaviorTree, SelectorNode, SequenceNode, LeafNode
 from pico2d import *
-import main_state
+import world_build_state
 
 # zombie Run Speed
 PIXEL_PER_METER = (10.0 / 0.3)  # 10 pixel 30 cm
@@ -21,9 +21,9 @@ FRAMES_PER_ACTION = 10
 animation_names = ['Attack', 'Dead', 'Idle', 'Walk']
 
 
-
 class Zombie:
     images = None
+    font = None
 
     def load_images(self):
         if Zombie.images == None:
@@ -31,88 +31,52 @@ class Zombie:
             for name in animation_names:
                 Zombie.images[name] = [load_image("./zombiefiles/female/"+ name + " (%d)" % i + ".png") for i in range(1, 11)]
 
-    def __init__(self):
-        # positions for origin ar top, left
-        positions = [(43, 750), (1118, 750), (1050, 530), (575, 220),
-                     (235, 33), (575, 220), (1050, 530), (1118, 750)]
-        self.patrol_positions = []
-        for p in positions:
-            self.patrol_positions.append((p[0], 1024-p[1]))  # convert for origin at bottom, left
-        self.patrol_order = 1
-        self.target_x, self.target_y = None, None
-        self.x, self.y = self.patrol_positions[0]
-
+    def __init__(self, name='NONAME', x=0, y=0, size=1):
+        self.name = name
+        self.x, self.y = x * PIXEL_PER_METER, y * PIXEL_PER_METER
+        self.size = size
+        if Zombie.font is None:
+            Zombie.font = load_font('ENCR10B.TTF', 16)
         self.load_images()
         self.dir = random.random()*2*math.pi # random moving direction
         self.speed = 0
         self.timer = 1.0 # change direction every 1 sec when wandering
         self.frame = 0
         self.build_behavior_tree()
-        self.hp = 0
-        self.font_hp = load_font('ENCR10B.TTF', 20)
 
+    def __getstate__(self):
+        # fill here
+        pass
 
-    def calculate_current_position(self):
-        self.frame = (self.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % FRAMES_PER_ACTION
-        self.x += self.speed * math.cos(self.dir) * game_framework.frame_time
-        self.y += self.speed * math.sin(self.dir) * game_framework.frame_time
-        self.x = clamp(50, self.x, 1280 - 50)
-        self.y = clamp(50, self.y, 1024 - 50)
+    def __setstate__(self, state):
+        # fill here
+        pass
 
     def wander(self):
-        # fill here
         self.speed = RUN_SPEED_PPS
-        self.calculate_current_position()
         self.timer -= game_framework.frame_time
         if self.timer < 0:
             self.timer += 1.0
-            self.dir = random.random() * 2 * math.pi
+            self.dir = random.random()*2*math.pi
 
         return BehaviorTree.SUCCESS
-        pass
+
 
     def find_player(self):
-        # fill here
-        boy = main_state.get_boy()
+        boy = world_build_state.get_boy()
         distance = (boy.x - self.x)**2 + (boy.y - self.y)**2
-        if distance < (PIXEL_PER_METER * 10)**8:
+        if distance < (PIXEL_PER_METER * 10)**2:
             self.dir = math.atan2(boy.y - self.y, boy.x - self.x)
             return BehaviorTree.SUCCESS
         else:
             self.speed = 0
             return BehaviorTree.FAIL
-        pass
 
     def move_to_player(self):
-        # fill here
         self.speed = RUN_SPEED_PPS
-        self.calculate_current_position()
         return BehaviorTree.SUCCESS
-        pass
-
-    def get_next_position(self):
-        # fill here
-        self.target_x, self.target_y = self.patrol_positions[self.patrol_order % len(self.patrol_positions)]
-        self.patrol_order += 1
-        self.dir = math.atan2(self.target_y - self.y, self.target_x - self.x)
-        return BehaviorTree.SUCCESS
-        pass
-
-    def move_to_target(self):
-        # fill here
-        self.speed = RUN_SPEED_PPS
-        self.calculate_current_position()
-
-        distance = (self.target_x - self.x)**2 + (self.target_y - self.y)**2
-
-        if distance < PIXEL_PER_METER**2:
-            return BehaviorTree.SUCCESS
-        else:
-            return BehaviorTree.RUNNING
-        pass
 
     def build_behavior_tree(self):
-        # fill here
         wander_node = LeafNode("Wander", self.wander)
         find_player_node = LeafNode("Find Player", self.find_player)
         move_to_player_node = LeafNode("Move to Player", self.move_to_player)
@@ -121,33 +85,33 @@ class Zombie:
         wander_chase_node = SelectorNode("WanderChase")
         wander_chase_node.add_children(chase_node, wander_node)
         self.bt = BehaviorTree(wander_chase_node)
-        pass
-
-
 
 
     def get_bb(self):
         return self.x - 50, self.y - 50, self.x + 50, self.y + 50
 
     def update(self):
-        # fill here
         self.bt.run()
-        pass
-
+        self.frame = (self.frame + FRAMES_PER_ACTION * ACTION_PER_TIME * game_framework.frame_time) % FRAMES_PER_ACTION
+        self.x += self.speed * math.cos(self.dir)* game_framework.frame_time
+        self.y += self.speed * math.sin(self.dir)* game_framework.frame_time
+        self.x = clamp(50, self.x, get_canvas_width() - 50)
+        self.y = clamp(50, self.y, get_canvas_height() - 50)
 
     def draw(self):
-        self.font_hp.draw(self.x, self.y + 60, 'HP: %d' % self.hp, (0, 0, 255))
-
+        tw, th = int(100*self.size), int(100*self.size)
         if math.cos(self.dir) < 0:
             if self.speed == 0:
-                Zombie.images['Idle'][int(self.frame)].composite_draw(0, 'h', self.x, self.y, 100, 100)
+                Zombie.images['Idle'][int(self.frame)].composite_draw(0, 'h', self.x, self.y, tw, th)
             else:
-                Zombie.images['Walk'][int(self.frame)].composite_draw(0, 'h', self.x, self.y, 100, 100)
+                Zombie.images['Walk'][int(self.frame)].composite_draw(0, 'h', self.x, self.y, tw, th)
         else:
             if self.speed == 0:
-                Zombie.images['Idle'][int(self.frame)].draw(self.x, self.y, 100, 100)
+                Zombie.images['Idle'][int(self.frame)].draw(self.x, self.y, tw, th)
             else:
-                Zombie.images['Walk'][int(self.frame)].draw(self.x, self.y, 100, 100)
+                Zombie.images['Walk'][int(self.frame)].draw(self.x, self.y, tw, th)
+
+        Zombie.font.draw(self.x - 30, self.y + 50, self.name, (255, 255, 0))
 
     def handle_event(self, event):
         pass
